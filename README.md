@@ -29,3 +29,4 @@ After the script finishes running, it will provide information about what items 
 
 contact me via Discord: `tagarik`
 I appreciate any donations via <a href="https://steamcommunity.com/tradeoffer/new/?partner=254504183&token=18GqktYI">Steam</a> <3
+If you are new to Dmarket, you can use this <a href="https://dmarket.com?ref=sEKTpgwC2S">link</a> to support me too
