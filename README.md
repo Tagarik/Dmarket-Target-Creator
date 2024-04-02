@@ -13,7 +13,8 @@ Dmarket Target Creator is a tool that automatically creates buy orders for profi
 
 To use the tool, run `target_creator.py` and select one of the options from menu
 
-```==========TARGET CREATOR==========
+```
+==========TARGET CREATOR==========
 
 [1] fetch buy orders (2% fee)     
 [2] fetch buy orders (10% fee)    
