@@ -1,11 +1,12 @@
-import requests, json, time, json, logging
+import requests, json, time, json, logging, dotenv, os
 from datetime import datetime
 from nacl.bindings import crypto_sign
 from furl import furl
 
+dotenv.load_dotenv()
 signature_prefix = "dmar ed25519 "
 
-def header_creator_params( private_key, public_key, request_method: str, api_url: str, params: dict = None,):
+def header_creator_params(request_method: str, api_url: str, params: dict = None,):
     global signature_prefix
     nonce = str(round(datetime.now().timestamp()))
     string_to_sign = request_method + api_url
@@ -13,36 +14,36 @@ def header_creator_params( private_key, public_key, request_method: str, api_url
         string_to_sign = str(furl(string_to_sign).add(params))
     string_to_sign += nonce
     encoded = string_to_sign.encode('utf-8')
-    signature_bytes = crypto_sign(encoded, bytes.fromhex(private_key))
+    signature_bytes = crypto_sign(encoded, bytes.fromhex(os.getenv("private_key")))
     signature = signature_bytes[:64].hex()
     headers = {
         "X-Request-Sign": signature_prefix + signature,
-        "X-Api-Key": public_key,
+        "X-Api-Key": os.getenv("public_key"),
         "X-Sign-Date": nonce,
         "Content-Type": "application/json"
         }
     return headers
 
-def header_creator_body(private_key, public_key, request_method: str, api_url: str, body: dict):
+def header_creator_body(request_method: str, api_url: str, body: dict):
     global signature_prefix
     nonce = str(round(datetime.now().timestamp()))
     string_to_sign = request_method + api_url + json.dumps(body) + nonce
     encoded = string_to_sign.encode('utf-8')
-    signature_bytes = crypto_sign(encoded, bytes.fromhex(private_key))
+    signature_bytes = crypto_sign(encoded, bytes.fromhex(os.getenv("private_key")))
     signature = signature_bytes[:64].hex()
     headers = {
         "X-Request-Sign": signature_prefix + signature,
-        "X-Api-Key": public_key,
+        "X-Api-Key": os.getenv("public_key"),
         "X-Sign-Date": nonce,
         "Content-Type": "application/json"
         }
     return headers
 
-def get_dmarket_balance(private_key, public_key):
+def get_dmarket_balance():
     rootApiUrl = "https://api.dmarket.com"
     api_url = "/account/v1/balance"
     request_method = "GET"    
-    headers = header_creator_params(private_key, public_key, request_method, api_url)
+    headers = header_creator_params(request_method, api_url)
     response = requests.get(rootApiUrl + api_url, headers=headers)
     if response.status_code == 200:
         logging.info(f"GET DMARKET BALANCE STATUS CODE - {response.status_code}")
@@ -54,7 +55,7 @@ def get_dmarket_balance(private_key, public_key):
     logging.info(f"current balance: {float(balance)/100}$")
     return balance
 
-def custom_fees(private_key, public_key):
+def custom_fees():
     rootApiUrl = "https://api.dmarket.com"
     api_url = "/exchange/v1/customized-fees"
     request_method = "GET"
@@ -65,7 +66,7 @@ def custom_fees(private_key, public_key):
         "limit": 10000,
         "offset": x
         }
-    headers = header_creator_params(private_key, public_key, request_method, api_url, params)
+    headers = header_creator_params(request_method, api_url, params)
     resp = requests.get(rootApiUrl + api_url, params = params, headers = headers)
     if resp.status_code == 200:
         logging.info(f"GET ITEMS WITH CUSTOM FEES STATUS CODE - {resp.status_code}")
@@ -75,7 +76,7 @@ def custom_fees(private_key, public_key):
     data = json.loads(resp.text)
     return data
 
-def post_order(item: dict, private_key, public_key):
+def post_order(item: dict):
     rootApiUrl = "https://api.dmarket.com"
     api_url = "/marketplace-api/v1/user-targets/create"
     request_method = "POST"
@@ -93,7 +94,7 @@ def post_order(item: dict, private_key, public_key):
                 }
             ]
             }
-    headers = header_creator_body(private_key, public_key, request_method, api_url, body)
+    headers = header_creator_body(request_method, api_url, body)
     resp = requests.post(rootApiUrl + api_url, json=body, headers=headers)
     if resp.status_code == 200:
         logging.info(f"POST TARGET STATUS CODE - {resp.status_code}")
@@ -103,7 +104,7 @@ def post_order(item: dict, private_key, public_key):
     details = json.loads(resp.text)
     return details
 
-def aggregate(items: list, private_key, public_key):
+def aggregate(items: list):
     rootApiUrl = "https://api.dmarket.com"
     api_url = "/price-aggregator/v1/aggregated-prices"
     request_method = "GET"
@@ -114,7 +115,7 @@ def aggregate(items: list, private_key, public_key):
         if len(item_list) > 50:
             params = {"Titles": item_list,
                       "gameId": "a8db"}
-            headers = header_creator_params(private_key, public_key, request_method, api_url, params)
+            headers = header_creator_params(request_method, api_url, params)
             resp = requests.get(rootApiUrl + api_url, params = params, headers = headers)
             details = json.loads(resp.text)
             if resp.status_code == 200:
@@ -140,7 +141,7 @@ def aggregate_full(private_key, public_key, Offset):
     request_method = "GET"
     params = {"Offset": Offset*10000,
               "GameID": "a8db"}
-    headers = header_creator_params(private_key, public_key, request_method, api_url, params)
+    headers = header_creator_params(request_method, api_url, params)
     resp = requests.get(rootApiUrl + api_url, params = params, headers = headers)
     if resp.status_code == 200:
         logging.info(f"FULL AGGREGATOR STATUS CODE - {resp.status_code}")
@@ -150,7 +151,7 @@ def aggregate_full(private_key, public_key, Offset):
     details = json.loads(resp.text)
     return details
 
-def last_sales(private_key, public_key, item):
+def last_sales(item):
     rootApiUrl = "https://api.dmarket.com"
     api_url = "/trade-aggregator/v1/last-sales"
     request_method = "GET"
@@ -163,7 +164,7 @@ def last_sales(private_key, public_key, item):
             "txOperationType":x,
             "Limit": 20
             }
-        headers = header_creator_params(private_key, public_key, request_method, api_url, params)
+        headers = header_creator_params(request_method, api_url, params)
         resp = requests.get(rootApiUrl + api_url, params=params, headers=headers)
         time.sleep(0.2)
         if resp.status_code == 200:
