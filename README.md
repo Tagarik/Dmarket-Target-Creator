@@ -7,7 +7,11 @@ Dmarket Target Creator is a tool that automatically creates buy orders for profi
 2. Create virtual environment: `py -m venv myenv`
 3. Activate the environment: `myenv\Scripts\activate`
 4. Install libraries: `py -m pip install -r requirements`
-5. Paste your API keys to `config.py` file
+5. Create `.env` file in the directory and paste your api keys like so:
+```
+PRIVATE_KEY= your private key
+PUBLIC_KEY= your public key
+```
 
 ## How to use
 
@@ -29,3 +33,4 @@ After the script finishes running, it will provide information about what items 
 
 contact me via Discord: `tagarik`
 I appreciate any donations via <a href="https://steamcommunity.com/tradeoffer/new/?partner=254504183&token=18GqktYI">Steam</a> <3
+If you are new to Dmarket, you can use this <a href="https://dmarket.com?ref=sEKTpgwC2S">link</a> to support me too

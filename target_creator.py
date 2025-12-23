@@ -1,26 +1,23 @@
-import os, datetime, config, api_calls, credentials, logging
-
-log = logging
+import os, datetime, config, api_calls, logging as log, dotenv, os
+dotenv.load_dotenv()
 log.basicConfig(level=log.INFO)
 
 output_file_path = "dmakret_fees.json"
 balance = 0
-private_key = credentials.private_key
-public_key = credentials.public_key
 
 def low_fee_buy_orders():
     percentage = config.SMALL_FEE
-    data =  api_calls.custom_fees(private_key=credentials.private_key, public_key=credentials.public_key)
+    data =  api_calls.custom_fees(private_key=os.getenv("PRIVATE_KEY"), public_key=os.getenv("PUBLIC_KEY"))
     items = []
     for i in data["reducedFees"]:
         if not check(i["title"]):
             items.append({'i':i["title"]})
-    deal_list = api_calls.aggregate(items=items, private_key=credentials.private_key, public_key=credentials.public_key)
+    deal_list = api_calls.aggregate(items=items, private_key=os.getenv("PRIVATE_KEY"), public_key=os.getenv("PUBLIC_KEY"))
     compare_prices(deal_list, percentage)
 
 def compare_prices(deal_list: list, percentage: float):
     order_list = []
-    balance = api_calls.get_dmarket_balance(private_key=credentials.private_key, public_key=credentials.public_key)
+    balance = api_calls.get_dmarket_balance(private_key=os.getenv("PRIVATE_KEY"), public_key=os.getenv("PUBLIC_KEY"))
 
     for i in deal_list:
         if float(i["Buy_Orders"]) < percentage * float(i["Sale_Offers"]) and float(i["Listings"]) > config.listings_amount and config.min_price < float(i["Buy_Orders"]) < int(balance)/100 * 0.95:
@@ -32,7 +29,7 @@ def compare_prices(deal_list: list, percentage: float):
 def place_orders(order_list: list):
     if order_list != []:
         for i in order_list:
-            response = api_calls.post_order(item=i, private_key=credentials.private_key, public_key=credentials.public_key)
+            response = api_calls.post_order(item=i, private_key=os.getenv("PRIVATE_KEY"), public_key=os.getenv("PUBLIC_KEY"))
             if response["Result"][0]["Successful"] != True:
                 log.error(f"COULDN'T PLACE ORDER FOR {response['Result'][0]['CreateTarget']['Title']}: {response['Result'][0]['Error']['Message']}")
             else:
@@ -50,7 +47,7 @@ def high_fee_buy_orders():
     percentage = config.BIG_FEE
 
     for i in range(6):
-        details = api_calls.aggregate_full(private_key=credentials.private_key, public_key=credentials.public_key, Offset=i)
+        details = api_calls.aggregate_full(private_key=os.getenv("PRIVATE_KEY"), public_key=os.getenv("PUBLIC_KEY"), Offset=i)
         details_full.append(details["AggregatedTitles"])
 
     for i in details_full:
@@ -69,7 +66,7 @@ def high_fee_buy_orders():
 def liquidity_check(item: str):
     sales_indicator = 0
     targets_indicator = 0
-    data = api_calls.last_sales(private_key=credentials.private_key, public_key=credentials.public_key, item=item)
+    data = api_calls.last_sales(private_key=os.getenv("PRIVATE_KEY"), public_key=os.getenv("PUBLIC_KEY"), item=item)
     sales = data[0]["sales"]
     targets = data[1]["sales"]
     for i in sales:
