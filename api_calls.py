@@ -55,16 +55,15 @@ def get_dmarket_balance():
     logging.info(f"current balance: {float(balance)/100}$")
     return balance
 
-def custom_fees():
+def custom_fees(offset: int):
     rootApiUrl = "https://api.dmarket.com"
     api_url = "/exchange/v1/customized-fees"
-    request_method = "GET"
-    x = 1        
+    request_method = "GET"    
     params = {
         "gameId": "a8db", 
         "offerType": "dmarket",
-        "limit": 10000,
-        "offset": x
+        "limit": 1000,
+        "offset": offset
         }
     headers = header_creator_params(request_method, api_url, params)
     resp = requests.get(rootApiUrl + api_url, params = params, headers = headers)
@@ -76,23 +75,13 @@ def custom_fees():
     data = json.loads(resp.text)
     return data
 
-def post_order(item: dict):
+def post_order(items: dict):
     rootApiUrl = "https://api.dmarket.com"
     api_url = "/marketplace-api/v1/user-targets/create"
     request_method = "POST"
-    amount = float(item["Buy_Orders"])+0.01
     body = {
             "GameID": "a8db",
-            "Targets": [
-                {
-                    "Amount": "1",
-                    "Price": {
-                        "Currency": "USD",
-                        "Amount": amount
-                    },
-                    "Title": item["title"],
-                }
-            ]
+            "Targets": items
             }
     headers = header_creator_body(request_method, api_url, body)
     resp = requests.post(rootApiUrl + api_url, json=body, headers=headers)
@@ -104,52 +93,22 @@ def post_order(item: dict):
     details = json.loads(resp.text)
     return details
 
-def aggregate(items: list):
+def aggregate_items(cursor: str = None, titles: list = [], limit: int = 1000):
     rootApiUrl = "https://api.dmarket.com"
-    api_url = "/price-aggregator/v1/aggregated-prices"
-    request_method = "GET"
-    deal_list = []
-    item_list = []
-    for i in items:
-        item_list.append(i["i"])
-        if len(item_list) > 50:
-            params = {"Titles": item_list,
-                      "gameId": "a8db"}
-            headers = header_creator_params(request_method, api_url, params)
-            resp = requests.get(rootApiUrl + api_url, params = params, headers = headers)
-            details = json.loads(resp.text)
-            if resp.status_code == 200:
-                logging.info(f"PARTIAL AGGREGATOR STATUS CODE - {resp.status_code}")
-            else:
-                logging.error(f"PARTIAL AGGREGATOR STATUS CODE - {resp.status_code}")
-                logging.error(resp.text)
-            item_list = []
-            c = 0
-            time.sleep(0.2)
-            for x in details:
-                deal_list.append({"title": details['AggregatedTitles'][c]['MarketHashName'],
-                "Sale_Offers": details['AggregatedTitles'][c]['Offers']["BestPrice"],
-                "Listings": details['AggregatedTitles'][c]['Offers']["Count"],
-                "Buy_Orders": details['AggregatedTitles'][c]['Orders']["BestPrice"]})
-                c = c + 1
-            item_list = []
-    return deal_list
-
-def aggregate_full(private_key, public_key, Offset):
-    rootApiUrl = "https://api.dmarket.com"
-    api_url = "/price-aggregator/v1/aggregated-prices"
-    request_method = "GET"
-    params = {"Offset": Offset*10000,
-              "GameID": "a8db"}
-    headers = header_creator_params(request_method, api_url, params)
-    resp = requests.get(rootApiUrl + api_url, params = params, headers = headers)
-    if resp.status_code == 200:
-        logging.info(f"FULL AGGREGATOR STATUS CODE - {resp.status_code}")
-    else:
-        logging.error(f"FULL AGGREGATOR STATUS CODE - {resp.status_code}")
+    api_url = "/marketplace-api/v1/aggregated-prices"
+    request_method = "POST"
+    body = {'filter': {'game': 'a8db'}, 'limit': str(limit), 'cursor': cursor}
+    if titles != []:
+        body['filter']['titles'] = titles
+    headers = header_creator_body(request_method, api_url, body)
+    resp = requests.post(rootApiUrl + api_url, json=body, headers=headers)
+    
+    if resp.status_code != 200:
+        logging.error(f"AGGREGATOR STATUS CODE - {resp.status_code}")
         logging.error(resp.text)
-    details = json.loads(resp.text)
-    return details
+        quit()
+    data = resp.json()
+    return data
 
 def last_sales(item):
     rootApiUrl = "https://api.dmarket.com"
